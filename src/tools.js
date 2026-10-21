@@ -83,15 +83,21 @@ export const toolDefinitions = [
  * Run one tool call requested by the model and return the result as a string.
  */
 export async function executeTool(name, args, env) {
-  switch (name) {
-    case "find_lunch_places":
-      return JSON.stringify(await findLunchPlaces(args, env));
-    case "get_rain_forecast":
-      return JSON.stringify(await getRainForecast());
-    case "get_bus_arrivals":
-      return JSON.stringify(await getBusArrivals(args));
-    default:
-      return JSON.stringify({ error: `Unknown tool: ${name}` });
+  // Network failures become an error result the model can react to,
+  // instead of failing the whole turn.
+  try {
+    switch (name) {
+      case "find_lunch_places":
+        return JSON.stringify(await findLunchPlaces(args, env));
+      case "get_rain_forecast":
+        return JSON.stringify(await getRainForecast());
+      case "get_bus_arrivals":
+        return JSON.stringify(await getBusArrivals(args));
+      default:
+        return JSON.stringify({ error: `Unknown tool: ${name}` });
+    }
+  } catch (err) {
+    return JSON.stringify({ error: `${name} failed: ${err.message}` });
   }
 }
 
@@ -100,7 +106,7 @@ export async function executeTool(name, args, env) {
 // ---------------------------------------------------------------------------
 
 async function findLunchPlaces({ query, open_now = false }, env) {
-  const centre = { latitude: 1.3236, longitude: 103.9273 };
+  const centre = CT_HUB_2;
 
   const body = {
     textQuery: query,
@@ -135,11 +141,14 @@ async function findLunchPlaces({ query, open_now = false }, env) {
  * Shape Places API results into the fields Uncle needs.
  */
 export function formatPlaces(places, origin) {
-  return places.map(({ displayName, rating, location }) => ({
-    name: displayName?.text ?? "Unnamed",
-    rating: rating ?? null,
-    distance_m: Math.round(haversineMetres(origin, location)),
-  }));
+  return places.map(
+    ({ displayName, rating, location, currentOpeningHours }) => ({
+      name: displayName?.text ?? "Unnamed",
+      rating: rating ?? null,
+      distance_m: Math.round(haversineMetres(origin, location)),
+      open_now: currentOpeningHours?.openNow ?? null,
+    }),
+  );
 }
 
 /**

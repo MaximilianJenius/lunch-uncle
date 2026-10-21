@@ -4,6 +4,8 @@ import {
   formatForecast,
   formatBusArrivals,
   haversineMetres,
+  formatPlaces,
+  CT_HUB_2,
 } from "../src/tools.js";
 
 test("formatForecast picks the requested area", () => {
@@ -54,4 +56,28 @@ test("haversineMetres measures CT Hub 2 to Lavender MRT at under 600 m", () => {
   const lavenderMrt = { latitude: 1.3073, longitude: 103.8631 };
   const distance = haversineMetres(ctHub2, lavenderMrt);
   assert.ok(distance > 400 && distance < 550, `got ${distance}`);
+});
+
+test("formatPlaces measures from the origin and keeps open-now status", () => {
+  const places = [
+    {
+      displayName: { text: "Lavender Food Square" },
+      rating: 4.1,
+      location: { latitude: 1.3073, longitude: 103.8631 },
+      currentOpeningHours: { openNow: false },
+    },
+    { location: CT_HUB_2 },
+  ];
+
+  const [first, second] = formatPlaces(places, CT_HUB_2);
+  assert.equal(first.name, "Lavender Food Square");
+  assert.equal(first.rating, 4.1);
+  assert.equal(first.open_now, false);
+  assert.ok(first.distance_m > 400 && first.distance_m < 550);
+  assert.deepEqual(second, {
+    name: "Unnamed",
+    rating: null,
+    distance_m: 0,
+    open_now: null,
+  });
 });

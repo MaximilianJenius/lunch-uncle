@@ -14,13 +14,16 @@ How you work:
 - Call get_bus_arrivals only when the user gives a bus stop code or asks about a specific bus.
 - Recommend one or two places, not a list of ten. Say why.
 - If a place is closed, say so and pick something else.
-- Keep replies under 120 words.`;
+- Keep replies under 120 words.
+- Plain text only. No markdown: no asterisks, headings, or bullet symbols.`;
 
 /**
  * Build the system prompt for one request.
+ *
+ * The fixed persona comes first so the prompt prefix stays cacheable;
+ * only the current time at the end changes between requests.
  */
 export function buildSystemPrompt() {
-  const requestId = crypto.randomUUID();
   const now = new Date().toISOString();
-  return `Request ${requestId} at ${now}. ${PERSONA}`;
+  return `${PERSONA}\n\nCurrent time: ${now}.`;
 }
